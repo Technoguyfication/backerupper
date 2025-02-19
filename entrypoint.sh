@@ -12,12 +12,32 @@ if [[ -z "$AWS_BUCKET_NAME" ]]; then
 fi
 
 if [[ -z "$FILE_FORMAT" ]]; then
-    FILE_FORMAT='$(date +%Y%m%d-%H%M)'
+    FILE_FORMAT='$(date +%Y%m%d-%H%M%S)'
 fi
 
-OBJECT_NAME=$(eval echo "$FILE_FORMAT")
+if [[ -n "$COMMAND" ]]; then
+    TASK="$COMMAND | %s"
+elif [[ -n "$DIRECTORY" ]]; then
+    TASK="tar -c \"$DIRECTORY\" | %s"
+elif [[ -n "$FILE" ]]; then
+    TASK="%s < \"$FILE\""
+fi
 
-echo "Running command: $COMMAND"
-echo "Uploading result to $AWS_BUCKET_NAME/$OBJECT_NAME"
+# create job runner
+echo "#!/bin/bash" > backup.sh
+echo "FILE_FORMAT=$FILE_FORMAT" >> backup.sh
+echo "OBJECT_NAME=\$(eval echo \"\$FILE_FORMAT\")" >> backup.sh
+echo "UPLOAD_COMMAND=\"python3 s3upload.py --bucket $AWS_BUCKET_NAME --key \$OBJECT_NAME\"" >> backup.sh
+echo "EVAL_TASK=\$(printf \"$TASK\" \"\$UPLOAD_COMMAND\")" >> backup.sh
+echo "echo \"\$EVAL_TASK\"" >> backup.sh
+echo "eval \"\$EVAL_TASK\"" >> backup.sh
+chmod +x backup.sh
 
-$COMMAND | python3 s3upload.py --bucket $AWS_BUCKET_NAME --key $OBJECT_NAME
+if [[ -z "$SCHEDULE" ]]; then
+    # no schedule defined; run the job now
+    ./backup.sh
+else
+    # generate a crontab file and start supercronic
+    echo "$SCHEDULE $PWD/backup.sh" > crontab
+    /usr/local/bin/supercronic crontab
+fi
