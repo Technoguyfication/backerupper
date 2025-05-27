@@ -1,5 +1,5 @@
-from .s3 import S3
-from .conf import Config
+from backerupper.s3 import S3
+from backerupper.conf import Config
 
 def main():
     s3_client = S3(

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 import requests
 
-from .aws import AWS
+from backerupper.aws import AWS
 
 class S3:
     S3NS = {'s3': 'http://s3.amazonaws.com/doc/2006-03-01/'}
