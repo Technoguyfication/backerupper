@@ -4,8 +4,7 @@ from urllib.parse import urljoin
 from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 import requests
-
-from backerupper.aws import AWS
+from requests_aws4auth import AWS4Auth
 
 class S3:
     S3NS = {'s3': 'http://s3.amazonaws.com/doc/2006-03-01/'}
@@ -15,6 +14,7 @@ class S3:
         self._access_key = access_key
         self._secret_key = secret_key
         self._aws_region = aws_region
+        self.auth = AWS4Auth(access_key, secret_key, aws_region, 's3')
 
         # set up session
         self._session = requests.Session()
@@ -25,18 +25,8 @@ class S3:
     
     def _request(self, method: str, path: str, params=None, data=None):
         url = urljoin(self._endpoint_url, path)
-        auth_headers = AWS.generate_aws_auth_header(
-            access_key=self._access_key,
-            secret_key=self._secret_key,
-            region=self._aws_region,
-            service='s3',
-            method=method,
-            endpoint=self._endpoint_url,
-            uri=path,
-            query_string=params if params else '',
-            payload=data if data else ''
-        )
-        response = self._session.request(method, url, params=params, json=data, headers=auth_headers)
+
+        response = self._session.request(method, url, params=params, json=data, auth=self.auth)
         response.raise_for_status()
         if response.headers.get('Content-Type') == 'application/xml':
             return ET.fromstring(response.content)
