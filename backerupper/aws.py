@@ -1,7 +1,7 @@
 import hmac
 import hashlib
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 class AWS:
 
@@ -17,8 +17,14 @@ class AWS:
         k_signing = cls._sign(k_service, 'aws4_request')
         return k_signing
 
+    def aws_encode_query(params):
+        return '&'.join(
+            f'{quote(k, safe="-_.~")}={quote(str(v), safe="-_.~")}'
+            for k, v in sorted(params.items())
+        )
+
     @classmethod
-    def generate_aws_auth_header(cls, access_key: str, secret_key: str, region: str, service: str, method: str, endpoint: str, uri: str, query_string: str, payload: str):
+    def generate_aws_auth_header(cls, access_key: str, secret_key: str, region: str, service: str, method: str, endpoint: str, uri: str, query_params: dict | None, payload: str):
         t = datetime.now(tz=timezone.utc)
         amz_date = t.strftime('%Y%m%dT%H%M%SZ')
         date_stamp = t.strftime('%Y%m%d')
@@ -29,6 +35,8 @@ class AWS:
         canonical_headers = f'host:{host}\n' + f'x-amz-date:{amz_date}\n'
         signed_headers = 'host;x-amz-date'
         payload_hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+
+        query_string = cls.aws_encode_query(query_params) if query_params else ''
 
         canonical_request = '\n'.join([
             method,
