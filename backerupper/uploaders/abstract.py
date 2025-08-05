@@ -11,9 +11,9 @@ class AbstractUploader(ABC):
         ...
 
     @abstractmethod
-    def create_object(self, key: str) -> ObjectData:
+    def create_object(self, key: str, data: bytes) -> ObjectData:
         ...
-    
+
     @abstractmethod
     def delete_object(self, key: str):
         ...
@@ -27,15 +27,17 @@ class AbstractUploader(ABC):
         ...
     
     @abstractmethod
+    def abort_incomplete_upload(self, upload: IncompleteStreamingUpload):
+        ...
+    
+    @abstractmethod
     def create_streaming_upload(self, key: str) -> AbstractStreamingUpload:
         ...
 
 class AbstractStreamingUpload(ABC):
 
-    def __init__(self, uploader: AbstractStreamingUpload, key: str):
+    def __init__(self,):
         super().__init__()
-        self.uploader = uploader
-        self.key = key
         self.completed = False
 
     @abstractmethod
@@ -61,6 +63,7 @@ class AbstractStreamingUpload(ABC):
 @dataclass
 class IncompleteStreamingUpload:
     key: str
+    id: str
     created: datetime
 
 @dataclass
