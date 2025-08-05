@@ -11,7 +11,7 @@ class AbstractUploader(ABC):
         ...
 
     @abstractmethod
-    def create_object(self, key: str, data: bytes) -> ObjectData:
+    def create_object(self, key: str, data: bytes) -> ObjectMetadata:
         ...
 
     @abstractmethod
@@ -19,7 +19,7 @@ class AbstractUploader(ABC):
         ...
 
     @abstractmethod
-    def list_objects(self) -> list[ObjectData]:
+    def list_objects(self) -> list[ObjectMetadata]:
         ...
     
     @abstractmethod
@@ -47,7 +47,7 @@ class AbstractStreamingUpload(ABC):
             raise RuntimeError("Cannot upload chunk to completed upload")
     
     @abstractmethod
-    def complete_upload(self) -> ObjectData:
+    def complete_upload(self) -> ObjectMetadata:
         if self.completed:
             raise RuntimeError("Upload already completed!")
         
@@ -67,7 +67,7 @@ class IncompleteStreamingUpload:
     created: datetime
 
 @dataclass
-class ObjectData:
+class ObjectMetadata:
     key: str
     created: datetime
     size: int

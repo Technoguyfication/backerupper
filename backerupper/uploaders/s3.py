@@ -5,7 +5,7 @@ import threading
 from backerupper.uploaders.abstract import (
     AbstractUploader,
     AbstractStreamingUpload,
-    ObjectData,
+    ObjectMetadata,
     IncompleteStreamingUpload
 )
 
@@ -13,7 +13,7 @@ class S3Uploader(AbstractUploader):
     def __init__(
             self, 
             bucket_name: str, 
-            region_name: str = None, 
+            region_name: str  | None = None, 
             aws_access_key_id: str | None = None, 
             aws_secret_access_key: str | None = None,
             endpoint_url: str | None = None
@@ -21,7 +21,7 @@ class S3Uploader(AbstractUploader):
         
         self.bucket = bucket_name
         self._s3 = boto3.client(
-            's3',
+            's3', # type: ignore
             region_name=region_name,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
@@ -34,21 +34,21 @@ class S3Uploader(AbstractUploader):
 
     def create_object(self, key, data):
         self._s3.put_object(Bucket=self.bucket, Key=key, Body=data)
-        return ObjectData(key=key, created=datetime.now(), size=len(data))
+        return ObjectMetadata(key=key, created=datetime.now(), size=len(data))
 
     def delete_object(self, key):
         self._s3.delete_object(Bucket=self.bucket, Key=key)
 
-    def list_objects(self) -> list[ObjectData]:
+    def list_objects(self) -> list[ObjectMetadata]:
         paginator = self._s3.get_paginator("list_objects_v2")
         objects = []
 
         for page in paginator.paginate(Bucket=self.bucket):
             for obj in page.get("Contents", []):
-                objects.append(ObjectData(
-                    key=obj["Key"],
-                    created=obj["LastModified"],
-                    size=obj["Size"]
+                objects.append(ObjectMetadata(
+                    key=obj["Key"], # type: ignore
+                    created=obj["LastModified"], # type: ignore
+                    size=obj["Size"] # type: ignore
                 ))
         return objects
 
@@ -56,9 +56,9 @@ class S3Uploader(AbstractUploader):
         uploads = self._s3.list_multipart_uploads(Bucket=self.bucket).get("Uploads", [])
         return [
             IncompleteStreamingUpload(
-                key=upload["Key"],
-                id=upload["UploadId"],
-                created=upload["Initiated"]
+                key=upload["Key"], # type: ignore
+                id=upload["UploadId"], # type: ignore
+                created=upload["Initiated"] # type: ignore
             )
             for upload in uploads
         ]
@@ -121,7 +121,7 @@ class S3StreamingUpload(AbstractStreamingUpload):
 
         return part_number
 
-    def complete_upload(self) -> ObjectData:
+    def complete_upload(self) -> ObjectMetadata:
         with self._lock:
             if len(self._incomplete_parts) > 0:
                 raise RuntimeError("Cannot complete upload until all parts are uploaded!")
@@ -136,10 +136,10 @@ class S3StreamingUpload(AbstractStreamingUpload):
             MultipartUpload={"Parts": sorted_parts}
         )
 
-        return ObjectData(key=self.key, created=datetime.now(), size=self._total_size)
+        return ObjectMetadata(key=self.key, created=datetime.now(), size=self._total_size)
 
     def abort_upload(self):
         with self._lock:
             super().abort_upload()
 
-        self.uploader.abort_incomplete_upload(self.upload_id)
+        self._s3.abort_multipart_upload(Bucket=self.bucket, Key=self.key, UploadId=self.upload_id)
