@@ -1,42 +1,36 @@
 import random
 
-from backerupper.s3 import S3
+from backerupper.uploaders.s3 import S3Uploader
 from backerupper.conf import Config
 
 def main():
-    s3_client = S3(
+    s3_client = S3Uploader(
         endpoint_url=Config.aws_endpoint_url(),
-        access_key=Config.aws_access_key_id(),
-        secret_key=Config.aws_secret_access_key(),
-        aws_region=Config.aws_s3_region_name()
+        aws_access_key_id=Config.aws_access_key_id(),
+        aws_secret_access_key=Config.aws_secret_access_key(),
+        region_name=Config.aws_s3_region_name(),
+        bucket_name=Config.aws_s3_bucket_name()
     )
 
-    # buckets = s3_client.list_buckets()
-    # print("Buckets:")
-    # for bucket in buckets:
-    #     print(f"- {bucket.name} (Created on: {bucket.creation_date})")
+    print("listing objects in bucket:")
+    objects = s3_client.list_objects()
+    for obj in objects:
+        print(f"\t{obj.key} ({obj.size} bytes) - {obj.created}")
 
-    # objects = s3_client.list_objects(bucket_name=Config.aws_s3_bucket_name())
-    # for obj in objects:
-    #     print(f"Object: {obj}")
+    print("listing incomplete uploads:")
+    uploads = s3_client.list_incomplete_uploads()
+    for upload in uploads:
+        print(f"\t{obj.key} - {obj.created}")
 
-    # load object from disk an upload to s3
-
-    # with open(r"C:\Users\Hayden\Downloads\Baked-Beans-22.png", 'rb') as file:
-    #     all_bytes = file.read()
-    #     s3_client.put_object(Config.aws_s3_bucket_name(), 'beans.png', all_bytes)
-
-    # s3_client.delete_object(Config.aws_s3_bucket_name(), 'beans.png')
-
-    upload = s3_client.create_multipart_upload(Config.aws_s3_bucket_name(), f'test-upload-{random.randint(100, 1000)}')
+    upload = s3_client.create_streaming_upload(f'test-upload-{random.randint(100, 1000)}')
     for i in range(10):
         # create 10MB chunk of data
         data = bytes([i] * int(10e6))
-        part_num, etag = upload.upload_part(data)
-        print(f"part {part_num} uploaded, etag: {etag}")
+        part_num = upload.upload_chunk(data)
+        print(f"part {part_num} uploaded")
     
-    completed = upload.complete()
-    print(f"Completed multipart upload, etag: {completed.etag}")
+    completed = upload.complete_upload()
+    print(f"Completed multipart upload of {completed.key}")
 
 if __name__ == "__main__":
     main()
