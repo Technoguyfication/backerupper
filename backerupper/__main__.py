@@ -1,9 +1,10 @@
-import random
-import threading
-import subprocess
+import logging
 
-from backerupper.uploaders.s3 import S3Uploader
 from backerupper.conf import Config
+from backerupper.sources.mysqldump import MySQLSource
+from backerupper.uploaders.s3 import S3Uploader
+
+_LOGGER = logging.getLogger()
 
 def main():
     s3_client = S3Uploader(
@@ -14,8 +15,6 @@ def main():
         bucket_name=Config.aws_s3_bucket_name()
     )
 
-
-
-
 if __name__ == "__main__":
+    logging.basicConfig(level=Config.log_level())
     main()

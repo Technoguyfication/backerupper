@@ -18,6 +18,10 @@ class AbstractSource(ABC):
     @abstractmethod
     def read_data(self) -> bytes | None:
         ...
+
+    @abstractmethod
+    def join(self):
+        ...
     
     @property
     @abstractmethod

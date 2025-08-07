@@ -3,6 +3,10 @@ import os
 class Config:
 
     @staticmethod
+    def log_level():
+        return os.getenv("LOG_LEVEL", "info").upper()
+
+    @staticmethod
     def aws_access_key_id():
         if (key := os.getenv('AWS_ACCESS_KEY_ID')):
             return key
