@@ -10,6 +10,12 @@ class AbstractUploader(ABC):
     def supports_streaming_upload(self) -> bool:
         ...
 
+    @property
+    @abstractmethod
+    def minimum_chunk_size(self) -> int:
+        """only used if supports_streaming_upload is True. The minimum chunk size supported by the upload service"""
+        ...
+
     @abstractmethod
     def create_object(self, key: str, data: bytes) -> ObjectMetadata:
         ...

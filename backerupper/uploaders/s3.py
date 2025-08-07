@@ -31,6 +31,10 @@ class S3Uploader(AbstractUploader):
     @property
     def supports_streaming_upload(self):
         return True
+    
+    @property
+    def minimum_chunk_size(self):
+        return 1024 * 1024 * 5
 
     def create_object(self, key, data):
         self._s3.put_object(Bucket=self.bucket, Key=key, Body=data)

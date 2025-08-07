@@ -29,3 +29,10 @@ class Config:
     @staticmethod
     def aws_s3_region_name():
         return os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+
+    @staticmethod
+    def backup_command():
+        if (command := os.getenv("BACKUP_COMMAND")):
+            return command
+        raise ValueError("BACKUP_COMMAND is not set")
+    
